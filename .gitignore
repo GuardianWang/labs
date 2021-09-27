@@ -66,3 +66,9 @@ labsTaSolutions/deploy_test/
 
 # Stupid OSX.
 .DS_Store
+
+.qmake.stash
+debug
+release
+*.Debug
+*.Release

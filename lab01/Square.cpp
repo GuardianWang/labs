@@ -4,6 +4,9 @@
 
 //  TODO (task 12): Write an area function that returns
 //        the area of square given its sideLength
+int Square::area() {
+    return sideLength * sideLength;
+}
 
 
 //  TODO (task 13): Write the definition of the constructor
@@ -12,7 +15,9 @@
 //                 member variable and more. Make sure it runs
 //                 the constructor of the parent class so that
 //                 default width and height are set!
-
+Square::Square() :
+    sideLength(0)
+{}
 
 
 //  TODO (task 14): Write the definition of the destructor
@@ -22,7 +27,9 @@
 //                 class members when the object is destroyed
 //                 Ours will print out the string
 //                 "SQUARE DESTRUCTOR"
-
+Square::~Square() {
+    std::cout << "SQUARE DESTRUCTOR" << std::endl;
+}
 
 
 void Square::set_side_length(int x)
@@ -30,7 +37,7 @@ void Square::set_side_length(int x)
     //  TODO (task 15): Write a function that sets the
     //                  member variable sideLength
     //                  to equal x
-
+    sideLength = x;
 }
 
 
