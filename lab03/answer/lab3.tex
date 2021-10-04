@@ -1,0 +1,122 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% CSCI 1230 Algo Answer Template
+% This template is based on Brown CS course CSCI 1420 http://cs.brown.edu/courses/csci1420/resources.html
+% and CSCI 1430 https://browncsci1430.github.io/webpage/.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass[12pt,letterpaper,onecolumn]{article}
+\usepackage{fullpage}
+\usepackage[top=2cm, bottom=4.5cm, left=2.5cm, right=2.5cm]{geometry}
+\usepackage{amsmath,amsthm,amsfonts,amssymb,amscd}
+\usepackage{multicol}
+\usepackage{lastpage}
+\usepackage{enumerate}
+\usepackage{fancyhdr}
+\usepackage{mathrsfs}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{pythonhighlight}
+\usepackage{xcolor}
+\usepackage{listings}
+
+\setlength{\parindent}{0.0in}
+\setlength{\parskip}{0.05in}
+
+\colorlet{mygray}{black!30}
+\colorlet{mygreen}{green!60!blue}
+\colorlet{mymauve}{red!60!blue}
+
+% https://tex.stackexchange.com/questions/409705/c-code-change-the-font
+\lstset{
+  backgroundcolor=\color{gray!10},  
+  basicstyle=\ttfamily,
+  columns=fullflexible,
+  breakatwhitespace=false,      
+  breaklines=true,                
+  captionpos=b,                    
+  commentstyle=\color{mygreen}, 
+  extendedchars=true,              
+  frame=single,                   
+  keepspaces=true,             
+  keywordstyle=\color{blue},      
+  language=c++,                 
+  numbers=none,                
+  numbersep=5pt,                   
+  numberstyle=\tiny\color{blue}, 
+  rulecolor=\color{mygray},        
+  showspaces=false,               
+  showtabs=false,                 
+  stepnumber=5,                  
+  stringstyle=\color{mymauve},    
+  tabsize=3,                      
+  title=\lstname                
+}
+
+% Edit these as appropriate
+\newcommand\course{CSCI 1230 \\ Intro. to CG}
+\newcommand\algono{03}
+\newcommand\algoname{Transformations \& Scene Graphs}
+\newcommand\semester{Fall 2021}            % <-- current semester
+
+\pagestyle{fancyplain}
+\headheight 35pt
+\lhead{\course}
+\chead{\Large{Lab \algono\ \algoname}}
+\rhead{\semester \\ \today}
+\lfoot{}
+\cfoot{}
+\rfoot{\small\thepage}
+\headsep 1.5em
+
+\begin{document}
+\section{}
+$C^\prime = RTSC$
+
+\section{}
+$M_1 M_2$
+
+\section{}
+\begin{multicols}{2} 
+blue square: $M_1 M_3 M_6$
+
+blue triangle: $M_1 M_3 M_7$
+
+white circle: $M_1 M_4 M_8 M_{11}$
+
+black square: $M_1 M_4 M_9 M_{12}$
+
+blue rectangle: $M_1 M_4 M_{10}$
+\end{multicols}
+
+\section{}
+
+We can save in each node the corresponding transformation
+matrix.
+To do this, we can apply DFS and the complexity would be 
+$O(n)$ where $n$ is the number of nodes.
+
+\begin{lstlisting}
+class Node {
+private:
+    mat4 transformMat;
+    int numChildren;
+    Node[] children;
+    mat4[] edgeTransforms;
+    // other attributes
+};
+void dfs(Node node, mat4 nodeMat, mat4 edgeMat) {
+    node.transformMat = nodeMat * edgeMat
+
+    if (0 == node.numChildren) render(node);  // leaf
+        
+    for (int i = 0; i < node.numChildren; i++) {
+        dfs(node.children[i], node.transformMat, node.edgeTransforms[i]);
+    }
+}
+    
+
+\end{lstlisting}
+
+\end{document}
