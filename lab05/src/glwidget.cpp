@@ -42,6 +42,8 @@ void GLWidget::paintGL() {
     glPolygonMode(GL_FRONT_AND_BACK, settings.linesEnabled ? GL_LINE : GL_FILL);
 
     // TODO [Task 8]: Draw a triangle
+    initializeTriangle();
+    m_triangle->draw();
 
 
     glUseProgram(0); // Uninstalls the shader program.
@@ -58,6 +60,8 @@ void GLWidget::initializeTriangle() {
                                     0.f,  .5f, 0.f};
 
     // TODO [Task 7]
-
+    m_triangle->setVertexData(triData.data(), triData.size(), VBO::GEOMETRY_LAYOUT::LAYOUT_TRIANGLES, 3);
+    m_triangle->setAttribute(ShaderAttrib::POSITION, 3, 0, VBOAttribMarker::DATA_TYPE::FLOAT, false);
+    m_triangle->buildVAO();
 }
 
