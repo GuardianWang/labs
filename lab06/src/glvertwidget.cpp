@@ -84,6 +84,7 @@ void GLVertWidget::initializeGLTransformationsVertexShaders() {
     m_square->buildVAO();
 
     // TODO: Enable depth testing. (Task 6)
+    glEnable(GL_DEPTH_TEST);
 
 }
 
@@ -103,39 +104,51 @@ void GLVertWidget::paintGLTransformationsVertexShaders() {
         // TODO: Adjust the eye coordinates so the camera goes in a circle of radius 6 where
         // y is always equal to 1. (Task 7)
 
-        glm::vec3 eye = glm::vec3(0.f, 1.f, 6.f);        // Camera position.
+        glm::vec3 eye = glm::vec3(6.f * glm::cos(m_angle), 1.f, 6.f * glm::sin(m_angle));        // Camera position.
         glm::vec3 center = glm::vec3(0.f, 1.f, 0.f);     // Where camera is looking.
         glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);         // Up direction.
-
-
+//        tick();
 
         glUseProgram(m_program);
 
-        glUniform3f(glGetUniformLocation(m_program, "color"), 0.5, 0.4, 0.8);
+        glUniform3f(glGetUniformLocation(m_program, "color"), 0.5, 0.5, 0.5);
 
         // TODO: Use the equation to translate the ball. (Task 7)
+        float ballY = 0.5f + std::fabs(std::sin(3 * time));
 
 
         // TODO: Generate model matrix and pass it to vertex shader. (Task 3)
+        glm::mat4 model = glm::translate(glm::mat4(1.f), glm::vec3({0.f, ballY, 0.f}));
+        glUniformMatrix4fv(glGetUniformLocation(m_program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
 
         // TODO: Generate view matrix and pass it to vertex shader. (Task 4)
+        glm::mat4 view = glm::lookAt(eye, center, up);
+        glUniformMatrix4fv(glGetUniformLocation(m_program, "view"), 1, GL_FALSE, glm::value_ptr(view));
 
 
         // TODO: Generate projection matrix and pass it to vertex shader. (Task 4)
+        glm::mat4 perspective = glm::perspective(fieldOfViewY, aspectRatio, nearClipPlane, farClipPlane);
+        glUniformMatrix4fv(glGetUniformLocation(m_program, "perspective"), 1, GL_FALSE, glm::value_ptr(perspective));
 
 
         // TODO: Draw sphere here! (Task 1)
+        m_sphere->draw();
 
         // TODO: Change color. (Task 5)
+        glUniform3f(glGetUniformLocation(m_program, "color"), 0.1, 0.7, 0.9);
 
         // TODO: Scale the square x2. (Task 7)
+        model = glm::scale(glm::mat4(1.f), glm::vec3(2.f));
 
 
         // TODO: Rotate the square to lie flat on the XZ plane. (Task 7)
+        model = glm::rotate(model, glm::pi<float>() / 2.f, glm::vec3(1.f, 0.f, 0.f));
+        glUniformMatrix4fv(glGetUniformLocation(m_program, "model"), 1, GL_FALSE, glm::value_ptr(model));
 
 
         // TODO: Draw the square. (Task 5)
+        m_square->draw();
 
 
         glUseProgram(0);
