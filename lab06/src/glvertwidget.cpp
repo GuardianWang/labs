@@ -107,7 +107,6 @@ void GLVertWidget::paintGLTransformationsVertexShaders() {
         glm::vec3 eye = glm::vec3(6.f * glm::cos(m_angle), 1.f, 6.f * glm::sin(m_angle));        // Camera position.
         glm::vec3 center = glm::vec3(0.f, 1.f, 0.f);     // Where camera is looking.
         glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);         // Up direction.
-//        tick();
 
         glUseProgram(m_program);
 
