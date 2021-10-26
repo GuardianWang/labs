@@ -80,6 +80,6 @@ release
 *.log
 *.synctex.gz
 
-lab05/lab5
-lab05/moc_predefs.h
+lab0*/lab*
+moc_predefs.h
 
