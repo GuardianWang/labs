@@ -79,3 +79,7 @@ release
 *.fls
 *.log
 *.synctex.gz
+
+lab05/lab5
+lab05/moc_predefs.h
+
