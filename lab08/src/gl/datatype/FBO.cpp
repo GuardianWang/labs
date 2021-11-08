@@ -24,7 +24,9 @@ FBO::FBO(int numberOfColorAttachments, DEPTH_STENCIL_ATTACHMENT attachmentType, 
 
     // TODO [Task 3]
     // Call bind() and fill it in with glBindFramebuffer
+    bind();
     // Call generateColorAttachments() and fill in generateColorAttachment()
+    generateColorAttachments(numberOfColorAttachments, wrapMethod, filterMethod, type);
 
     // TODO [Task 8] Call generateDepthStencilAttachment()
 
@@ -32,6 +34,7 @@ FBO::FBO(int numberOfColorAttachments, DEPTH_STENCIL_ATTACHMENT attachmentType, 
     checkFramebufferStatus();
 
     // TODO [Task 3] Call unbind() and fill it in
+    unbind();
 }
 
 FBO::~FBO()
@@ -48,6 +51,7 @@ void FBO::generateColorAttachments(int count, TextureParameters::WRAP_METHOD wra
         buffers.push_back(GL_COLOR_ATTACHMENT0 + i);
     }
     // TODO [Task 3] Call glDrawBuffers
+    glDrawBuffers(count, &buffers[0]);
 }
 
 void FBO::generateDepthStencilAttachment() {
@@ -79,18 +83,20 @@ void FBO::generateColorAttachment(int i, TextureParameters::WRAP_METHOD wrapMeth
     parameters.applyTo(tex);
 
     // TODO [Task 3] Call glFramebufferTexture2D using tex.id()
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, tex.id(), 0);
 
     m_colorAttachments.push_back(std::move(tex));
 }
 
 void FBO::bind() {
     // TODO [Task 3]
-
+    glBindFramebuffer(GL_FRAMEBUFFER, m_handle);
     // TODO [Task 4] // Resize the viewport to our FBO's size
 }
 
 void FBO::unbind() {
     // TODO [Task 3]
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 const Texture2D& FBO::getColorAttachment(int i) const {
