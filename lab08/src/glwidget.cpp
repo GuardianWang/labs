@@ -63,7 +63,12 @@ void GLWidget::initializeGL() {
     // TODO: [Task 6] Fill in the positions and UV coordinates to draw a fullscreen quad
     // We've already set the vertex attributes for you, so be sure to follow those specifications
     // (triangle strip, 4 vertices, position followed by UVs)
-    std::vector<GLfloat> quadData;
+    std::vector<GLfloat> quadData = {
+        -1.f, 1.f, 0.f, 0.f, 0.f,
+        -1.f, -1.f, 0.f, 0.f, 1.f,
+        1.f, 1.f, 0.f, 1.f, 0.f,
+        1.f, -1.f, 0.f, 1.f, 1.f
+    };
     m_quad = std::make_unique<OpenGLShape>();
     m_quad->setVertexData(&quadData[0], quadData.size(), VBO::GEOMETRY_LAYOUT::LAYOUT_TRIANGLE_STRIP, 4);
     m_quad->setAttribute(ShaderAttrib::POSITION, 3, 0, VBOAttribMarker::DATA_TYPE::FLOAT, false);
@@ -107,6 +112,9 @@ void GLWidget::drawBlur() {
     //       [Task 1.5] Call glViewport so that the viewport is the right size
     glViewport(0, 0, m_width, m_height);
     m_sphere->draw();
+
+    glUseProgram(m_textureProgram);
+    m_quad->draw();
     //       [Task 8] Bind m_blurFBO1's color texture
     //       [Task 7] Unbind m_blurFBO1 and render a full screen quad
     //       [Task 11] Bind m_blurFBO2
