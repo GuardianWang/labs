@@ -96,7 +96,13 @@ void GLWidget::paintGL() {
 
 void GLWidget::drawBlur() {
     // TODO: [Task 1] Do drawing here!
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glUseProgram(m_phongProgram);
+    glUniformMatrix4fv(glGetUniformLocation(m_phongProgram, "projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
+    glUniformMatrix4fv(glGetUniformLocation(m_phongProgram, "view"), 1, GL_FALSE, glm::value_ptr(m_view));
     //       [Task 1.5] Call glViewport so that the viewport is the right size
+    glViewport(0, 0, m_width, m_height);
+    m_sphere->draw();
     //       [Task 5b] Bind m_blurFBO1
     //       [Task 8] Bind m_blurFBO1's color texture
     //       [Task 7] Unbind m_blurFBO1 and render a full screen quad
