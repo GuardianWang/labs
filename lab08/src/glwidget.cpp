@@ -100,8 +100,8 @@ void GLWidget::drawBlur() {
     glUseProgram(m_phongProgram);
     glUniformMatrix4fv(glGetUniformLocation(m_phongProgram, "projection"), 1, GL_FALSE, glm::value_ptr(m_projection));
     glUniformMatrix4fv(glGetUniformLocation(m_phongProgram, "view"), 1, GL_FALSE, glm::value_ptr(m_view));
-    model = glm::mat4(1.f);
-    glUniformMatrix4fv(glGetUniformLocation(m_program, "model"), 1, GL_FALSE, glm::value_ptr(model));
+    auto model = glm::mat4(1.f);
+    glUniformMatrix4fv(glGetUniformLocation(m_phongProgram, "model"), 1, GL_FALSE, glm::value_ptr(model));
     //       [Task 1.5] Call glViewport so that the viewport is the right size
     glViewport(0, 0, m_width, m_height);
     m_sphere->draw();
