@@ -92,6 +92,7 @@ void FBO::bind() {
     // TODO [Task 3]
     glBindFramebuffer(GL_FRAMEBUFFER, m_handle);
     // TODO [Task 4] // Resize the viewport to our FBO's size
+    glViewport(0, 0, m_width, m_height);
 }
 
 void FBO::unbind() {
