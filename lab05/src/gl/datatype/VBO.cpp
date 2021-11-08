@@ -85,7 +85,7 @@ void VBO::bindAndEnable() const {
 
 void VBO::unbind() const {
     // TODO [Task 4]
-
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 }
 
 int VBO::numberOfFloatsPerVertex() const {
