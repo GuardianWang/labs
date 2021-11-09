@@ -75,9 +75,6 @@ void GLWidget::initializeGL() {
     m_quad->setAttribute(ShaderAttrib::TEXCOORD0, 2, 3*sizeof(GLfloat), VBOAttribMarker::DATA_TYPE::FLOAT, false);
     m_quad->buildVAO();
 
-    glUseProgram(m_textureProgram);
-    m_quad->draw();
-    glUseProgram(0);
 
     // We will use this VAO to draw our particles' triangles.
     // It doesn't need any data associated with it, so we don't have to make a full VAO instance
@@ -118,6 +115,10 @@ void GLWidget::drawBlur() {
     m_sphere->draw();
     glUseProgram(0);
 
+    glUseProgram(m_textureProgram);
+    glViewport(0, 0, m_width, m_height);
+    m_quad->draw();
+    glUseProgram(0);
     //       [Task 8] Bind m_blurFBO1's color texture
     //       [Task 7] Unbind m_blurFBO1 and render a full screen quad
     m_blurFBO1->unbind();
