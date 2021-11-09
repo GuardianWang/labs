@@ -112,11 +112,14 @@ void GLWidget::drawBlur() {
     //       [Task 1.5] Call glViewport so that the viewport is the right size
     glViewport(0, 0, m_width, m_height);
     m_sphere->draw();
+    glUseProgram(0);
 
     glUseProgram(m_textureProgram);
     m_quad->draw();
+    glUseProgram(0);
     //       [Task 8] Bind m_blurFBO1's color texture
     //       [Task 7] Unbind m_blurFBO1 and render a full screen quad
+    m_blurFBO1->unbind();
     //       [Task 11] Bind m_blurFBO2
 
 }
