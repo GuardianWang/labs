@@ -122,7 +122,7 @@ void GLWidget::drawBlur() {
     m_blurFBO1->unbind();
 
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glUseProgram(m_textureProgram);
+    glUseProgram(m_horizontalBlurProgram);
     glViewport(0, 0, m_width, m_height);
     m_quad->draw();
     glUseProgram(0);

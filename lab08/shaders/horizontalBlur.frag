@@ -10,7 +10,7 @@ void main(){
     fragColor = vec4(1.0);
 
     // TODO [Task 10] Calculate the texelSize
-    vec2 texelSize;
+    vec2 texelSize = 1.f / textureSize(tex, 0).xy;
 
     const int supportWidth = 20;
 
@@ -21,6 +21,8 @@ void main(){
         // TODO [Task 10] Add weight * sampleColor to fragColor, where
         //               sampleColor = tex sampled at uv + the offset
         //               in the x direction (you are moving over by "i" texels)
+        vec2 offset = vec2(uv.x + i * texelSize, uv.y);
+        fragColor += texture(tex, offset);
         weights += weight;
     }
     fragColor /= weights;
