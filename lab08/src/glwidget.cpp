@@ -115,6 +115,7 @@ void GLWidget::drawBlur() {
     m_sphere->draw();
     glUseProgram(0);
 
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUseProgram(m_textureProgram);
     glViewport(0, 0, m_width, m_height);
     m_quad->draw();
