@@ -117,6 +117,7 @@ void GLWidget::drawBlur() {
     glUseProgram(0);
 
     //       [Task 8] Bind m_blurFBO1's color texture
+    m_blurFBO1->getColorAttachment(0).bind();
     //       [Task 7] Unbind m_blurFBO1 and render a full screen quad
     m_blurFBO1->unbind();
 
