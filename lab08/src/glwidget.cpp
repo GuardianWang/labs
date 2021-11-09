@@ -101,6 +101,11 @@ void GLWidget::paintGL() {
 }
 
 void GLWidget::drawBlur() {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glUseProgram(m_textureProgram);
+    glViewport(0, 0, m_width, m_height);
+    m_quad->draw();
+    glUseProgram(0);
     //       [Task 5b] Bind m_blurFBO1
     m_blurFBO1->bind();
     // TODO: [Task 1] Do drawing here!
@@ -115,11 +120,6 @@ void GLWidget::drawBlur() {
     m_sphere->draw();
     glUseProgram(0);
 
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    glUseProgram(m_textureProgram);
-    glViewport(0, 0, m_width, m_height);
-    m_quad->draw();
-    glUseProgram(0);
     //       [Task 8] Bind m_blurFBO1's color texture
     //       [Task 7] Unbind m_blurFBO1 and render a full screen quad
     m_blurFBO1->unbind();
