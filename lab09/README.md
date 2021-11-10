@@ -1,607 +1,208 @@
-
-# Lab 9: Particles
-
-![](images/image13.png)
+# Lab 09: Image Processing
 
 ## Prologue
-
-At this point, you've learned the basic foundations of OpenGL and
-Maya! In this lab you will create and shade your own particle system through one of two options. By using your knowledge of...
-
-1. Framebuffers
-2. Maya
-
-Note: Of the last three labs, which will be helpful for
-your final project, you will only need to complete two by November 30th
-(but you can choose to do 3). You can get them checked off
-at any point between now and November 30th.
+For the past few labs, we have been working with OpenGL and 3D graphics; however, today we will be momentarily reverting back to 2D Canvas manipulation in order to introduce the next segment of the course: image processing. Throughout this lab, we will be applying different filters to images! This lab will help you prepare for the sixth project, **Filter**, which will require you to create slightly more complicated filters than the ones we introduce here. Let’s get started!
 
 ## Intro
+Digital image processing is a field in which certain operations are performed on digital images in order to enhance or extract useful information from them. It is a type of **signal processing**, in which our inputs are two-dimensional signals, i.e. images! Unlike sound processing, which measures sound signals over one-dimensional time, image processing measures signals over two-dimensional space.
 
-Particles are often used in computer graphics because they're easy to
-implement, look great, and can give you lots of cool effects like fire
-and smoke. Particles can be implemented in many ways. In this lab we
-will explore how to implement them using either framebuffers or Maya's features. You will only need to
-complete the FBO Version or the Maya version of this lab, but feel free
-to do both if you desire!
+Image processing algorithms cover a wide range of applications, including the conversion of signals from analog sensors to digital images, removing noise artifacts, extracting semantic information, image compression, and image enhancement.
 
-# Particles: FBO Version
+An image can be defined mathematically by the function f (x, y) where x and y correspond to the horizontal and vertical axes, respectively. The value of the function at a certain point provides the color of the pixel defined at that particular set of coordinates. This 2D matrix of pixels represents the image **spatial domain**. This information may be transformed into another domain that you may have heard of in class: the **frequency domain**, which is obtained by applying a **Fourier Transformation** on an image that is currently in the spatial domain. In this lab, we will solely be working in the spatial domain.
 
-## Introduction
-
-A common strategy to implement particle emission, is to keep a list of
-particle positions and velocities on the CPU, update them one at
-a time, and then send their positions to the GPU to draw them.
-But we know better.
-
-Imagine a texture with RGBA float (positive and negative) texels. What
-if we treated each texel as a particle? More precisely, each texel
-represents one particle's XYZ position and its lifetime in seconds. In a
-second texture, we can have the matching RGBA texel store XYZ velocity
-and age in seconds. If we run a shader on an FBO with these two textures
-as color attachments, we can update each particle in parallel!
-
-We will tackle this in a few steps:
-
--   The first update initializes the particles' positions and
-    velocities.
--   Subsequent passes update the positions and velocities or reset them
-    if the particle has died (its age is greater than its
-    lifetime).
--   The first draw pass takes the information in one FBO, updates each
-    pixel, and places the new information in the other FBO.
--   The second draw pass draws one triangle for each particle and, in
-    the shader, moves the triangles to the position stored in the
-    texture.
-    
 ## Getting Started
 
-The support code is the same as lab7 and this lab builds off of that
-code. Be sure to finish lab7 before starting lab8. The tasks start at 13
-for continuity with inline comments. Open up `glwidget.cpp` to get
-started.
+If you have already cloned the lab repo locally during labs before, navigate into ~/course/cs1230/labs (wherever you cloned the lab repository) and pull the latest changes. Otherwise you can get the labs starter code by opening up a terminal and running:
 
-Note that there is also a demo version of the lab that can be run by
-inputting `/course/cs1230/bin/cs1230_lab07_demo` into
-your terminal on the department machine through FastX3. Be sure to
-toggle the "Particles" radio button.
+git clone https://github.com/cs123tas/labs.git
 
-## Particle Storm Clouds Brewing
+Open Qt Creator and select “Open Project” and find the lab09.pro file in your lab09 directory.
 
-As with most labs, there is a bit of an overhead to getting something
-to show up on screen so let's get that set up. Make sure to go through
-each task carefully.
+On the Configure Project screen, make sure Desktop is selected and select “Configure Project.”  Once everything is configured, go to the Projects menu on the left and make sure that the Shadow build option is **not** checked.
 
-### Task 13:
+Note there is also a demo version of the lab that can be run by inputting _cs1230_lab04_demo_ *(this was the old name of the lab, yes it's lab04)* into your terminal on the department machine through FastX3. See [this link](https://cs.brown.edu/about/system/connecting/fastx/) on how to access department machines through FastX3. 
 
-First, we are going to make the FBO member variables. Recall we are
-using one for positions and one for velocities so we will need to make
-two different FBOs. Let's start with `initializeGL()`, and initialize
-`m_particlesFBO1` and `m_particlesFBO2` using
-`std::make_shared<FBO>(...)`
+Images for testing can be found in */course/cs123/data/image* (which you can either use directly in FastX, or [scp](https://linuxize.com/post/how-to-use-scp-command-to-securely-transfer-files/) to your computer). Or you can just use the stash of random obscure memes you've saved on your desktop.  
 
--   They need 2 color attachments (position and velocity) but do not
-    need depth attachments since it doesn't matter for the purposes of
-    this lab.
--   For width and height, pass in `m_numParticles` and `1`.
--   For wrap method, filter method, and storage type we will use
-    `TextureParameters::WRAP_METHOD::CLAMP_TO_EDGE`,
-    `TextureParameters::FILTER_METHOD::NEAREST`, and `GL_FLOAT`.
+## Filter Set-Up
+The `Canvas2D` class will be responsible for storing and manipulating the 2-dimensional canvas that will be displayed by the application window. This class has a `filterImage()` function that will be called by `MainWindow` whenever the filter button is clicked.
 
-### Task 14:
+### Task 1
+Let’s set-up the `filterImage()` function to apply the appropriate effect when the filter button is clicked.
 
-Great! Now to update the particles. You can see we already set up some
-of the logic for you in `drawParticles()`. `prevFBO` will hold the last
-particle state. We will update the particles from there and draw them to
-`nextFBO`.
+- Declare a filter object of type `std::unique_ptr<Filter>`
 
--   In `drawParticles()`, bind `nextFBO`
--   Note: we don't need to call `glClear` here because we know we're
-    going to be overwriting all the pixels we care about.
--   Use the program `m_particleUpdateProgram`
--   Setup the textures to read from. We have two textures, so we need
-    to tell which texture to put where:
-    -   Call `glActiveTexture` with `GL_TEXTURE0`.
-    -   Bind `prevFBO->getColorAttachment(0)`.
-    -   Call `glActiveTexture` with `GL_TEXTURE1`.
-    -   Bind `prevFBO->getColorAttachment(1)`.
+### Task 2
+Use the information in the global `Settings` object in order to figure out what specific filter will be applied to the image.
+- Head over to `Settings.h` to see the enumeration that contains all filter type names. ○ 
+-   Reminder that enums can be accessed by `EnumName::EnumValue`
+- Initialize the appropriate filter with `std::make_unique<className>()`
+- Note that `FilterShift` takes in an additional argument, `ShiftDirection`
+  
+*Tip: Use a switch statement to keep the code clean and readable!*
 
--   Send the uniforms to our shaders using
-    `glUniform***`. We will use the following
-    uniforms:
-    -   A `float` for whether or not it's the first
-        pass, as GLSL doesn't support bools (pass in `firstPass`)
-    -   An `int` for the number of particles
-        (`m_numParticles`)
-    -   Two textures, `prevPos` and `prevVel`. These are sent as
-        `ints`. Send `0` for `prevPos` and `1` for `prevVel`,
-        representing the active texture bindings we used for them.
+### Task 3
+Once the filter object has been initialized, apply the filtering effect.
+- Call the `apply()` from the filter object.
+- Make sure to send the `Canvas2D` so that the filter object has access to the image data.
 
--   Draw a fullscreen quad using `m_quad`. Note: this will not draw to
-    the size of the whole screen, but instead to the size of our FBO
-    because of the `glViewport` call in `FBO::bind()`. This means that our
-    shader will operate on each particle, as we wanted.
+## Grayscale Filter
+The first filter we will apply is a grayscale effect. In image processing, a grayscale image is one in which each pixel stores a single value that represents the amount of light passing through that point. In other words, the pixels only carry **intensity** information. These images are usually gray because each channel is set to the same value. Black (i.e. zero) signifies the weakest light intensity, and white (i.e. 255, since we have 8 bits per channel to store the sampled pixel data) represents the strongest light intensity.
 
-### Task 15:
+### Task 4
 
-Let's fill in our update shader now. Most of it is provided. We just
-need to fill in the update functions and the output locations. Let's
-start with telling `particles_update.frag` which color attachments it
-should output. At the top of `particles_update.frag`, declare the outputs,
-`pos` and `vel`, with explicit locations. `pos` should have location `0` and `vel`
-should have location `1`, because those are the color attachments we are
-using for them. Both are `vec4`s. To declare an explicit location for a
-uniform, you do something like this:
--   `layout(location = <desired location>) out <output type> <output name>;`
+Head over to the `apply()` method of the `FilterGray` class.
+- Make a call to the `RGBAToGray()` and store the gray `unsigned char` value that represents the light intensity at `current_pixel`.
 
-### Task 16:
+### Task 5
+We will use the `RGBAToGray()` method in order to calculate the appropriate shade of gray that represents the intensity of the pixel. This function will map the pixel’s three RGB values to a single light intensity value.
+- Return the correct gray value by computing a weighted sum of the R, G and B components of the incoming pixel.
+- Make sure that the image does not keep getting darker as you apply the grayscale filter.
+- The method to map RGB values to a the single gray intensity is not unique. For example, the simple *average method* computes the average between the three color channels: Y = (R + G + B) / 3
+- The *lightness method*, which will desaturate the image, averages the least prominent and most prominent values: Y = ( MAX(R,G,B) + MIN(R,G,B) ) / 2
+- The *luminosity method* calculates a weighted sum between the three color channels using percentages that account for the human perceptual system (we recommend this!)
 
-These texture attachments are not going to update themselves so let's
-fill that out. Remember that the xyz component represent the physics
-portion of an individual particle, whether it is position or velocity.
-The w component of position and velocity will determine the particle's
-lifetime and its age respectively.  In the same file:
+  Y = 0.299\*R + 0.587\*G + 0.114\*B 
 
--   Fill in `updatePosition` by sampling `prevPos` and `prevVel` at `uv` and
-    calculating `pos + vel * dt`. The `w` component shouldn't change from
-    `prevPos`, as it is the lifetime. This is the set amount of time the
-    particle will show on the screen and is therefore constant.
--   Fill in `updateVelocity` by sampling `prevVel` at `uv` and calculating
-    `vel + gravity * dt`. The `w` component should increase by `dt`, as it is
-    the age.
+*Tip: Use integer math to prevent image darkening.*
 
-### Task 17:
+***What does this do?***
 
-Great! Now we'll draw the particles to the screen. Back in
-`GLWidget::drawParticles`:
+Cones are the photoreceptor cells of the human visual system. There are three types of cone cells, each sensitive to a different (albeit overlapping) section of the visible light spectrum. The response curve of each cone cell type roughly corresponds to the colors red, green and blue (see image below). We have have a higher density of red and green-responsive cone cells, so we are more sensitive to red and green light. For this reason, the red and green channels are weighed more heavily in the *luminosity method* shown above. Green is weighed most heavily of all the other channels because rods, the other major cell-type in the eye, respond very little to red light as opposed to green and blue light; but this is beyond the scope of this lab!
 
--   Unbind `nextFBO` so we're drawing to the default framebuffer
--   Clear the `color` and `depth` buffers
--   Use the program `m_particleDrawProgram`
--   Call `setParticleViewport()`. This is a helper function that we
-    provided that will center the viewport around {0,0} with an aspect
-    ratio of 1:1 so the particles aren't distorted.
--   Similar to before, set up our textures to read from:
-    -   `glActiveTexture` with `GL_TEXTURE0`
-    -   Bind `nextFBO->getColorAttachment(0)`
-    -   `glActiveTexture` with `GL_TEXTURE1`
-    -   Bind `nextFBO->getColorAttachment(1)`
+![color response curves](./images/colorresponsecurves.png)
 
--   Set up the uniforms
-    -   An `int`, `0`, for `pos`, because it's
-        `GL_TEXTURE0`
-    -   An `int`, `1`, for `vel`, because it's
-        `GL_TEXTURE1`
-    -   An `int`, `m_numParticles`, for `numParticles`
+- The luminosity method is the most sophisticated approach we have covered, and it is the one we recommend for this lab, but feel free to try out each of these methods and compare their results!
+  - The average method should produce a more washed-out image compared to the luminosity technique since it doesn’t take into account the eye’s varying color sensitivities.
+  -  The lightness method should produce the image with least contrast of all three methods since it desaturates the pixel by setting its color to the midpoint between its maximum and minimum values.
 
--   Draw one triangle for each particle.  To do this, we need a VAO,
-    but it doesn't need any associated data or state, so we've prepared
-    a simple one for you.
-    -   Call `glBindVertexArray` with `m_particlesVAO`
-    -   Using `glDrawArrays`, draw `3 * m_numParticles` vertices using
-        `GL_TRIANGLES`
-    -   Unbind the VAO
-
--   Set the active texture back to `GL_TEXTURE0`
-
-It's Raining Particles
-
-Nice, almost there! We just need to fill in the `particles_draw` shaders!
-But wait, we don't have any vertex data, we just know where the centers
-of the particles should be. Luckily, we don't need to know the vertex
-locations; we can just generate them in the vertex shader. Here are some
-diagrams to explain what we're going to do:
-
-![gpu
-particles.png](images/image24.png)
-
-### Task 18:
-
-In `particles_draw.vert`:
-
--   Fill in `TRI_VERTS`. These are our triangle offsets. See the diagram
-    above.
-    -   We want to choose the offsets so that we can also use them as `uv`
-        coordinates.
-    -   The `pos` is the "anchor" point -- our particles position. We want the
-        `uv` coordinate to be such that the square has texture coordinates
-        going from 0 to 1 in both directions ({0,0} at `pos`). This can be
-        seen by the blue square. Based on the diagram, figure out the XY
-        values for `p1`, `p2`, and `p3`, and fill in `TRI_VERTS` accordingly.
-
--   Calculate `particleID` (the index of the particle we are on) and
-    `triID` (the vertex of the current triangle that we are on). OpenGL
-    provides an input called `gl_VertexID`. This tells us what vertex the
-    shader is on, ranging from `0` to `3 * numParticles`.
-    -   `particleID = gl_VertexID / 3` (floored)
-    -   `triID = gl_VertexID % 3` (remainder of `gl_VertexID / 3`)
-
--   Sample `pos` and `vel` to get `posTime` and `velAge`.  You can do this
-    using texture if you calculate the uv coordinates yourself, or you
-    can use `texelFetch`, like this:
-    -   `texelFetch(<texture>, ivec2(particleID,0), 0)`
-
-When you run your program now and switch to the "Particle" window, you
-should see white triangles flying everywhere.
-
-![](images/image21.png)
-
-If the particles aren't moving correctly or nothing is drawing, check
-the output in Qt Creator for shader compilation errors or FBO errors. If
-that didn't help, check that you used the correct
-`glUniform***` calls, especially
-`glUniform1f` vs `glUniform1i`. If
-you send an integer to the GPU saying it is a float, the GPU will
-interpret the bits as a float. This could cause some uniforms in your
-shader to have junk values. Otherwise, you might need to go back and
-check that you followed the steps correctly.
-
-### Task 19
-
-Once you have that working, there's just one last problem. Why are the
-particles white triangles? We want nice colorful circles instead. In
-`particles_draw.frag`, we don't want to color the fragments if our texture
-coordinates are outside of a unit circle centered at {0.5, 0.5}. This is
-why we did that complicated triangle offset earlier. We have provided
-you with the method `pickRainbowColor()` that sends out a `vec3` color you
-can use.
-
--   If the uv coordinate is within the unit circle (`length(uv - 0.5) <
-    0.5`), color it using the input `color` with an alpha of 1.
-    Otherwise, call `discard`. `discard` tells the shader to not color
-    this fragment.
-
-You're done! Congratulations! We skipped over a few of steps there, but
-you should have a general sense of the idea behind GPU particles. We
-encourage you to reuse the classes you filled in today for your final
-project or any other project you want.
+### Task 6 
+Set the final color of the pixel using the value `RGBAToGray()` returns.
+- Update the pixel, which is referenced by the `current_pixel` pointer. Remember to set all three color channels individually by accessing them from `current_pixel` directly!
 
 
-Now you are ready to show your program to a TA to get checked
-off!
+## Invert Filter
+The next filter we will implement is image inversion. Also known as the negative effect, this method works by inverting the value of each color channel for a pixel. In order to invert a channel, we subtract its value from the maximum color value, which in this case is 255.
+
+### Task 7
+In the `apply()` method of the `FilterInvert` class, 
+- Invert each color channel of `current_pixel`.
+
+*Tip: If you take the inversion of the inverted pixel data, you should end up with the original image! Test this out by simply double-filtering an image with the invert filter.*
+
+### \[Optional\] Task 8
+Now we are going to try a different approach using a neat bitwise operator trick! This only works because the size of `CS123Color` is equal to the size of `unsigned int`.
+- Obtain a pointer to the canvas data and cast it to an `unsigned int`
+- Iterating through the data with the pointer, simply take the bitwise complement of the pixel color.
+
+## Convolution
+Up until now, we have written filters that deal with each pixel independently, i.e. the final color of a specific pixel in the grayscale and inverse filters did not depend on neighboring pixels. We will now introduce the concept of **convolution**, which allows us to apply operations to a pixel while taking into account information obtained from its neighbors in the spatial domain.
+
+Convolution is one of the most fundamental operations in image processing. It can be used to alter images, as well as extract information from them (for this reason, it is used for dataset analysis in convolutional neural networks). The convolution operation relies on the use of **kernels**, which are two-dimensional matrices of varying dimensions.
+
+Let’s look at the example below. [^1] For simplicity, let us represent our image data with only one color channel, as shown in (b). We will apply the kernel to the pixel highlighted in red, which contains the intensity value **201**. Our kernel, shown in (f) is a 3x3 matrix. In image (c), we place the kernel over the pixel and multiply each kernel value with the corresponding neighboring pixels that surround our red-highlighted pixel.
+
+![convolution example](./images/kernelconvolution.png)
+
+To obtain the final value that will be used to update the pixel of interest (i.e. the pixel with intensity **201**), we will add up all of the multiplications in image (c) to obtain a final value of
+
+(0 \* 164) + (1 \* 188) + (1 \* 178) + (1 \* 201) + (1 \* 197) + (0 \* 174) + (1 \* 168) + (1 \* 181) = 932
+
+Before updating the pixel with this value, we must divide by the sum of the kernel coefficients to preserve overall brightness. The final value will be: 932/5 = 186.4
+
+As you can probably guess, convolution in two dimensions is very expensive to perform due to the rapid accumulation of multiplication operations when kernel dimensions become large. However, if the kernel is **separable**, then the computation can be reduced to *M* + *N* multiplications. You will need to implement separable kernels for at least one filter in the upcoming filter assignment. For this lab, we will only cover convolution with 2D kernels.
+
+*Tip: Since convolution becomes very inefficient with large images, we recommend you use small to medium-sized data for testing.*
+
+### Task 9
+
+We will now fill in the `Convolve2D()` method in the `FilterUtils` namespace. We need to store the new image data in a different `RGBA` array so as to not overwrite the original pixel data during the convolution process.
+- Initialize a `result` array to store the new `RGBA` values, using the incoming image `width` and `height`.
+
+### Task 10
+In order to iterate through the kernel, we will need its width and height,
+- Obtain the dimensions of `kernel` and initialize it at the beginning of the convolve function
+  - Since we can get `kernel.size()`, use a math function to determine the dimensions (refer to the tip below). We included `math.h` for you!
+
+*Tip: Two dimensional kernels will usually be square matrices since they tend to be symmetric in practice, so you can assume that the width and height are equal in this implementation. You can also assume that the width and height are always odd, since the kernel must be centered around one pixel.*
+
+### Task 11
+The final pixel color will be the summation of the kernel applied to the current pixel as well as its neighbors.
+- Initialize `red_acc`, `green_acc`, and `blue_acc` *float* variables to store the accumulated color channels.
+- Recall that `RGBA` stores channel information as integers. The kernel however, is defined by floats. You will need to convert the pixel data to a float before applying the kernel’s value to it.
+
+### Task 12
+We will now apply the convolution kernel on every pixel as we iterate over the image data.
+- Iterate over the kernel by creating a nested for-loop using the kernel dimension calculated in Task 10.
+- You will need two values at each iteration of the for-loop: the current value of the kernel and the value of the pixel that corresponds to that kernel element.
+- - Update `red_acc`, `green_acc`, and `blue_acc` with the corresponding pixel value multiplied by the value of the kernel at that for-loop iteration.
+
+*Tip: The index of the current kernel element can be obtained by using the current kernel row, current kernel column and kernel width. The index of the current pixel can be obtained similarly; however, you will need to perform additional steps in order to find the current row and column of the image that pertain to that kernel index.*
+
+### Task 13
+
+You may have noticed an issue when applying kernels with width and height greater than 1: the kernel extends beyond the boundary of the image, where pixel data is not defined. There are various options that you can explore further in the filter project, for now we will simply ignore these pixels.
+- Check whether the current neighboring pixel index is outside the image bounds; you can use the `continue` keyword to jump to the next for-loop iteration.
+
+### Task 14
+Update the `result` array at the center pixel index.
+- Create a `RGBA` variable with the `red_acc`, `green_acc`, and `blue_acc` floats that have been accumulated.
+- Use the `REAL2byte()` utility function that has been provided to convert the float back to an integer between 0 and 255.
+- During the convolution process, one must divide the accumulated intensity by the sum of the kernel coefficients in order to preserve overall brightness. We will ignore this for now since our Identity and Shift filters do not risk increasing image brightness; however, you will need to take this into account for your Filter project.
+
+### Task 15
+Copy the `result` array to the canvas image data.
+- Use `memcpy()` values to transfer the data from the `result` buffer array to the canvas image data.
+- The first argument to this function is the destination, while the second argument is the source. The function also requires a third argument, the number of bytes to copy. You will need to obtain this value by using the canvas dimensions, as well as the size of the data type that we use to store the image color intensities.
+
+*Tip: The C++ keyword `sizeOf()` returns the size in bytes of a given data type*
+
+## Identity Filter
+The identity filter will perform the convolution using an identity kernel, i.e. a kernel that, once convolution has been performed, results in the original image.
+
+### Task 16
+We will need the identity filter to use 2D convolution to filter the canvas data that is sent from `Canvas2D` when the filter button is clicked,
+- In the `apply()` method of the `FilterIdentity` class, call `Convolve2D()` from the `FilterUtils` namespace, sending the appropriate canvas information.
+
+### Task 17
+The `Convolve2D()` method in `FilterUtils` takes in a kernel that will be used during the convolution process. We will need to initialize it for the identity filter.
+- In the `FilterIdentity` initializer list, initialize `m_kernel` to be a vector of floats.
+- The size of the vector may be any ​odd ​number; however, remember that once the kernel size gets too large, 2D convolution becomes very slow.
+
+## Shift Filter
+The shift filter will shift the image one pixel to the left or right, depending on the value of `m_shiftDir`.
+
+## Task 18
+Just as above, we will need the shift filter to use 2D convolution to filter the canvas data that is sent from `Canvas2D` when the filter button is clicked,
+- In the `apply()` method of the `FilterShift` class, call `Convolve2D()` from the `FilterUtils` namespace, sending the appropriate canvas information.
+
+## Task 19
+Now we will need to initialize `m_kernel` for the shift filter.
+- In shift filter initializer list, initialize `m_kernel` to be a vector of floats.
+- Use the `m_shiftDir` variable to check whether the filter being used is a shift right or shift left filter.
+- Depending on the value of this `m_shiftDir` variable, create the appropriate kernel to shift the image *by one pixel*.
+
+## End
+Now you are ready to show your program to a TA to get checked off! 
 
 Be prepared to answer one or more of the following:
+- What do the pixel values in a grayscale image represent?
+- Describe the process of convolving an image with a kernel.
+- What happens when the kernel exceeds the boundary of an image?
+- Provide a kernel to shift an image three pixels downwards.
+- Provide a kernel to shift an image five pixels upwards.
 
--   Why is the width and height for the FBOs `m_numParticles` and `1`
-    respectively?
--   Why is the `nextFBO` bound when the `prevFBO`'s texture attachments are
-    the ones being activated?
--   We didn't use the depth attachment for this lab, but can you think
-    of a situation where you may want to use it?
+## Food for thought
+We only covered three algorithms for the grayscale filter, this blog-post covers various other options: (http://www.tannerhelland.com/3643/grayscale-image-algorithm-vb6/)
 
-Food for thought
+In this lab, we have only dealt with the spatial domain of images since we have implemented filters that are focused on the spatial location of pixels and their neighbors. If you are interested in the frequency domain, read about frequency filters, such as the high-pass and low-pass filter. Here is a useful tutorial to get you started:
+(https://homepages.inf.ed.ac.uk/rbf/HIPR2/freqfilt.htm)
 
-There's plenty of other cool tricks you can do if you want. None of
-these are required for this lab:
 
--   Color particles differently. We used a rainbow gradient, but you
-    could do whatever! You could even properly texture map your
-    particles using the uv coordinates (that's why we made them go from
-    0 to 1 in that square around the particle).
--   Change particle radius dynamically. We made the particle grow when
-    they are born and shrink when they die, but there's plenty more you
-    could do!
--   Have more interesting update methods. You can add additional forces
-    to make more complicated behavior, or update the particles to move
-    along a specific curve.
--   Store particles in a 2D array instead of a 1D array. This would
-    allow you to add more particles, as a 1 dimensional texture isn't
-    very optimal. OpenGL has a limit on render buffer dimension that
-    will vary from machine to machine. It is usually somewhere between
-    8000 and 17000. This means that, using our current method of 1D
-    indexing, you can only support that many particles. With 2D
-    indexing, the number of particles you could store would be squared,
-    allowing you to store millions of particles instead of our preset
-    5000!
--   Draw particles in world space instead of screen space. In this lab,
-    we drew our particles in the space from -1 to 1 in each dimension.
-    In fact, our particles all had a z position of 0, so they were
-    basically 2D particles. To draw 3D particles, you would instead need
-    to transform the particle triangles from world space to screen
-    space. This is slightly more complicated, because you would also
-    need to handle billboarding, or making the particles all face the
-    camera to give the illusion of spherical particles.
+Convolution in the spatial domain corresponds to multiplication in the frequency domain. This is quite handy since multiplication is faster than convolution. You may consider converting images to the frequency domain when spatial convolution kernels become too large and inefficient!
 
-Check out some of these examples:
+Another option to deal with large inefficient 2D kernels is to separate them into two 1D kernels! To learn more about convolution with separable kernels, checkout this handout: (https://cs.brown.edu/courses/cs123/handouts/filter/edgedetection.pdf)
 
--   [https://threejs.org/examples/?q=particle\#webgl_gpu_particle_system](https://www.google.com/url?q=https://threejs.org/examples/?q%3Dparticle%23webgl_gpu_particle_system&sa=D&source=editors&ust=1630507972544000&usg=AOvVaw3DAjD1MyqdJAQl63y7wkwN)
--   [https://lab.hakim.se/trail/02/](https://www.google.com/url?q=https://lab.hakim.se/trail/02/&sa=D&source=editors&ust=1630507972545000&usg=AOvVaw1m7LRCnC77WvwWc8F2gKa-)
--   [https://www.youtube.com/watch?v=CMVRILPTWzU](https://www.google.com/url?q=https://www.youtube.com/watch?v%3DCMVRILPTWzU&sa=D&source=editors&ust=1630507972545000&usg=AOvVaw2okLwp0HuENJ8ihs-tMF11)
 
-# Particles: Maya Version
+[^1]: (http://web.pdx.edu/~jduh/courses/Archive/geog481w07/Students/Ludwig_ImageConvolution.pdf)
 
-In the Introduction to Maya lab we explored how to use Autodesk Maya (often shortened to just “Maya”). Maya is a 3D graphics simulation app that is the industry standard for creating impressive 3D animations - from video games to Marvel movies! It also has a python (and MEL- Maya Embedded Language) scripting API which allows you to create complex scenes and effects with a few lines of code. One basic feature we will explore allows you to simulate particles being emitted from some source. This is the basis for interesting 3D effects like snow, fire and smoke. In this section of the lab, we will use Maya’s GUI to implement a colorful particle emitter, and then replicate the scene using python scripting. In the last part of the lab we will use our programming knowledge to create cool particle-based effects within Maya using a python script.
-
-
-## Part 1: Creating a shaded particle emitter in Maya
-
-### Task 1: Create a particle emitter
-
-1.  In the FX tab in Maya, create an emitter. Maya has created
-    "emitter" objects for you that you can create to model things like a
-    stream of particles to simulate fireworks or explosions. To create
-    one in the application you have to select the FX tab and then the
-    circled "emitter" button.
-
-![](images/image8.png)
-
-2.  When you create the emitter, a properties tab should appear which
-    will allow you to configure your particle emitter.
-
-![](images/image23.png)
-
-1.  Position your emitter at X=0; Y=5; Z=0
-
-![](images/image10.png)
-
-3.  Toggle the play button on, you should see a downward stream of
-    particles
-
-![](images/image15.png)
-
-### Task 2: Manipulate Particle Direction
-
-We will manipulate particle direction by disabling gravity and using an
-external force field. To do this:
-
-1.  Hit pause on the particle emitter mid-emission and select the
-    particle stream. On the left half of your screen, navigate to the
-    nParticleShape tab, and check ignore solver gravity. This should
-    make your particles emit in every direction.
-
-![](images/image26.png)
-
-After disabling gravity:
-
-![](images/image17.png)
-
-2.  To create a force field, toggle your menu to FX
-
-![](images/image1.png)
-
-Navigate to Fields/Solvers and click on Turbulence
-
-![](images/image11.png)
-
-Confirm the default magnitude value of 15, and hit apply
-
-![](images/image22.png)
-
-Now when you hit play, the motion of your particles should change from
-a uniform 360 degree emission, to emission in the direction of your
-newly added force field
-
-![](images/image27.png)
-
-### Task 3: Shading
-
-1.  First add a light to the scene:
-
-    - Navigate back to the modeling menu and toggle the rendering
-    tab
-
-    ![](images/image12.png)
-
-    - Add a directional light to the scene and configure its properties
-        to face the particle emitter
-
-    ![](images/image2.png)
-
-2.  Configure the light for the arnold shader by navigating to the
-    directionalLightShape tab, going to the arnold menu, and setting the
-    exposure to 1 and angle to 10
-
-    ![](images/image28.png)
-
-    -  Add an arnold surface shader by right clicking on the particle
-        emission and selecting 'Assign New Material'
-
-    ![](images/image19.png)
-
-    - In the material menu select aiStandardSurface in the Arnold Surface
-        section
-
-    ![](images/image5.png)
-
-3.  Next let's navigate to the hypershade node editor
-
-![](images/image16.png)
-
-4.  In the node editor, select the aiStandardShader we just applied to
-    our particles
-
-![](images/image25.png)
-
-5.  To bring the aiStandardSurface to the graph editor, right click on
-    it in the materials menu and drag your mouse to the graph editor.
-    When you release your mouse, the node should show up in the node
-    editor.
-
-![](images/image4.png)
-
-6.  In the node creator menu, search for jitter, aiColorJitter should
-    show up. Double click on it. This should add the color jitter node
-    to the graph editor
-
-![](images/image6.png)
-
-7.  Connect the color jitter's out color to the aiStandardSurface's
-    base color
-
-![](images/image18.png)
-
-8.  Navigate to the Material viewer on the right half of the screen.
-    Set it up to preview arnold shader colors by selecting the arnold
-    option on the first dropdown
-
-![](images/image20.png)
-
-9.  Toggle type to face
-
-![](images/image3.png)
-
-10. To randomize colors, change the input from grey to a different base
-    color, set the hue min to -1 and hue max to +1, saturation min and
-    max to 10.
-
-![](images/image14.png)
-
-11. Exit the hypershade menu
-12. Switch your renderer to Arnold
-
-![](images/image29.png)
-
-13. Hit play on the arnold viewportrenderer. This should shade your
-    scene with the hypershade parameters we set
-
-![](images/image9.png)
-
-One frame of the shaded scene:
-
-![](images/image7.png)
-
-## Part 2: Creating a particle emitter with a python script.
-
-Now that we have manually created a colorful particle emitter, we will
-replicate the same scene using python. A link to the maya python API is
-here: [https://download.autodesk.com/us/maya/2009help/api/main.html](https://www.google.com/url?q=https://download.autodesk.com/us/maya/2009help/api/main.html&sa=D&source=editors&ust=1630507972554000&usg=AOvVaw0x8RCdlIuiojuM0kNyR9sp)
-
-1.  Create a new scene
-2.  Open the maya script editor
-3.  Flip to the python tab
-4.  Import the necessary maya scripting packages
-
-```
-`mport maya.cmds as cmds
-from mtoa.cmds.arnoldRender import arnoldRender
-```
-
-5.  Create a particle emitter
-
-```
-cmds.emitter(pos=(0,5,0), type="omni", rate=500, n="emitter")
-cmds.particle( n='emitted' )
-particle_emitter = cmds.connectDynamic( 'emitted', em='emitter')
-```
-
-6.  Add turbulence forces to influence the motion of the particle
-
-```
-cmds.turbulence( n='turbulence', m=15.0)
-cmds.connectDynamic(particle_emitter, f='turbulence')
-```
-
-7.  Add a directional light to the scene
-
-```
-light = cmds.directionalLight(rotation=(-45, -60, -80), position=(17, 16, 15), intensity=1.0, n='light')
-```
-
-8.  Configure the light for the Arnold shader
-
-```
-cmds.setAttr('light.aiExposure', 1)
-cmds.setAttr('light.aiAngle', 10)
-```
-
-9.  Add an arnold surface shader for the particles
-
-```
-particleShader = cmds.shadingNode('aiStandardSurface', asShader=True)
-cmds.select('emitted')
-cmds.hyperShade(assign=particleShader)
-```
-
-10. Add color jittering to randomize particle color
-
-```
-colorJitter = cmds.shadingNode('aiColorJitter', asShader=True)
-cmds.connectAttr( colorJitter+'.outColor', particleShader+'.baseColor', force=True)
-```
-
-11. Set the default color of the particles to aqua
-
-`cmds.setAttr(colorJitter+".input", 0, 1, 1, type="double3")`
-
-12. Set the color range to the entire spectrum
-
-```
-cmds.setAttr(colorJitter+".faceHueMin", 1)
-cmds.setAttr(colorJitter+".faceHueMax", -1)
-```
-
-13. Set the saturation to max
-
-```
-cmds.setAttr(colorJitter+".faceSaturationMin", 10)
-cmds.setAttr(colorJitter+".faceSaturationMin", 10)
-```
-
-14. Set the camera position to a good place to capture the scene
-
-```
-cmds.camera('persp', e=True, position=(1.5, 6, 4.5), rotation=(-17,375,0))
-```
-
-15. Hit play on the scene and scub to a timestamp
-16. Enable the Arnold renderer and hit play!
-
-## Part 3: Taking Advantage of Maya Scripting
-
-So far we have created and shaded a single particle
-emitter. To explore the benefits of maya scripting, please demonstrate a
-scene with multiple particle emitters, possibly interacting with each
-other. Our example includes multiple particle emitters moving around and
-emitting particles when they come close to each other. You can fill in
-the todos below to emulate the same scene or build your own!
-
-```
-import maya.cmds as cmds
-import random
-import math
-
-## HELPER METHODS ##
-
-def moveEmitters(emitters):
-    for instanceResult in emitters:
-        x = random.uniform(-10, 10)
-        y = random.uniform(0, 20)
-        z = random.uniform(-10, 10)
-
-        cmds.move(x, y, z, instanceResult)
-
-
-def createAndGetEmitters():
-    emittersToReturn = []
-    // TODO 1: Create 50 particle emitters using a for loop. Each particle emitter should have a unique name.
-    //HINT 1: see the previous section on how to create and name a particle emitter via scripting (step 5)
-    //HINT 2: to set the rate use this command e.g: cmds.setAttr("%s.rate" % emitter1[1], 300)
-
-
-        emittersToReturn.append(particleEmitter)
-    return emittersToReturn
-
-
-def getDistance(emitter1, emitter2):
-    diffX = cmds.getAttr("%s.translateX" % emitter1[0]) - cmds.getAttr("%s.translateX" % emitter2[0])
-    diffY = cmds.getAttr("%s.translateY" % emitter1[0]) - cmds.getAttr("%s.translateY" % emitter2[0])
-    diffZ = cmds.getAttr("%s.translateZ" % emitter1[0]) - cmds.getAttr("%s.translateZ" % emitter2[0])
-
-    return math.sqrt((diffX * diffX) + (diffY * diffY) + (diffZ * diffZ))
-
-
-def emitOnCloseContact(emitters):
-    for emitter1 in emitters:
-        for emitter2 in emitters:
-            //TODO 2: if the distance between 2 emitters is less than 1, tell the emitters to emit particles, if not, tell them to not emit particles
-            //Hint 1: Use the getDistance method provided to compute distance
-            //Hint 2: Make sure you aren’t comparing the distance between the same emitter
-
-## SCENE SETUP AND FRAME EXECUTION ##
-
-emitters = createAndGetEmitters()
-
-for frame in range(1, 5):
-    cmds.currentTime(frame)
-    moveEmitters(emitters)
-    emitOnCloseContact(emitters)
