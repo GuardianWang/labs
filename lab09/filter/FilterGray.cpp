@@ -5,9 +5,9 @@ unsigned char RGBAToGray(const RGBA &pixel) {
     auto r = static_cast<float>(pixel.r);
     auto g = static_cast<float>(pixel.g);
     auto b = static_cast<float>(pixel.b);
-    auto gray = 0.5f * std::max(r, std::max(g, b)) +
-            0.5f * std::min(r, std::min(g, b));
-
+    float gray = 0.333f * r +
+            0.333f * g +
+            0.333f * b;
     return static_cast<unsigned char>(gray + 0.5f);
 }
 
