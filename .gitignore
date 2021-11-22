@@ -82,4 +82,5 @@ release
 
 lab0*/lab*
 moc_predefs.h
-
+particles/maya/images
+.mayaSwatches
