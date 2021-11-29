@@ -20,8 +20,31 @@ void main()
     vec3 n = normalize(eyeNormal);
     vec3 cameraToVertex = normalize(vertex); //remember we are in camera space!
     vec3 vertexToCamera = normalize(vertexToCamera);
-    // TODO: fill the rest in
+
+    // F
+    float cosNormalEye = dot(n, vertexToCamera);
+    float rf = r0 * (1 - r0) * pow(1.0 - cosNormalEye, 5.0);
+
+    mat4 cam2obj = inverse(view * model);
+
+    // reflection
+    vec3 reflectEye = reflect(cameraToVertex, n);
+    vec3 reflectEye_Object = (cam2obj * vec4(reflectEye, 0.0)).xyz;
+    vec4 reflectColor = texture(envMap, reflectEye_Object);
+
+    // refraction
+    vec3 refractR = refract(cameraToVertex, n, eta.r);
+    vec3 refractR_Object = (cam2obj * vec4(refractR, 0.0)).xyz;
+    vec4 refractColorR = texture(envMap, refractR_Object);
+    vec3 refractG = refract(cameraToVertex, n, eta.g);
+    vec3 refractG_Object = (cam2obj * vec4(refractG, 0.0)).xyz;
+    vec4 refractColorG = texture(envMap, refractG_Object);
+    vec3 refractB = refract(cameraToVertex, n, eta.b);
+    vec3 refractB_Object = (cam2obj * vec4(refractB, 0.0)).xyz;
+    vec4 refractColorB = texture(envMap, refractB_Object);
 
 
-    fragColor = vec4(0.0);
+    vec4 refractionColor = vec4(refractColorR.r, refractColorG.g, refractColorB.b, 1.0);
+
+    fragColor = mix(refractionColor, reflectColor, rf);
 }
